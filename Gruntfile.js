@@ -2,10 +2,12 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         uglify: {
-            my_target: {
-                files: {
-                    'dist/<%= pkg.name %>.min.js': ['src/<%= pkg.name %>.js']
-                }
+            options: {
+                banner: '/*! <%= pkg.name %> <%= pkg.version %> */\n'
+            },
+            build: {
+                src: 'src/continuum.js',
+                dest: 'dist/continuum.min.js'
             }
         },
         clean: {
