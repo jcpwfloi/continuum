@@ -18,9 +18,7 @@
          * @type {boolean}
          */
 
-        var $ = this;
-
-        $.support = (
+        this.support = (
             typeof File !== 'undefined' &&
             typeof Blob !== 'undefined' &&
             typeof FileList !== 'undefined' &&
@@ -30,30 +28,49 @@
             ) //file slicing support
         );
 
-        if (!$.support) {
+        if (!this.support) {
             return;
         }
 
-        $.option = {};
-        $.supportDirectory = /Chrome/.test(window.navigator.userAgent);
-        $.files = []; // File Objects
-        $.defaults = {
+        this.option = {};
+        this.supportDirectory = /Chrome/.test(window.navigator.userAgent);
+        this.files = []; // File Objects
+        this.defaults = {
             chunkSize: 1024 * 1024,
             enableFlashUpload: true
         };
-        $.option = $.extend($.option, $.defaults, opts);
+
+        this.option = extend(this.option, this.defaults, opts);
     }
 
     Continuum.prototype = {
         assignDrop: function(obj) {
             var $ = this;
-            obj.ondrop = function(event) {
-                preventDefaultEvent(event);
-                if (event.dataTransfer && e.dataTransfer.files.length != 0) {
-                    var files = e.dataTransfer.files;
-                    console.log(files);
-                }
+            var drop = obj;
+
+            function cancel(e) {
+                if (e.preventDefault) { e.preventDefault(); }
+                return false;
             }
+
+            // Tells the browser that we *can* drop on this target
+            addEventHandler(drop, 'dragover', cancel);
+            addEventHandler(drop, 'dragenter', cancel);
+
+            addEventHandler(drop, 'drop', function (e) {
+                e = e || window.event; // get window.event if e argument missing (in IE)   
+                if (e.preventDefault) { e.preventDefault(); } // stops the browser from redirecting off to the image.
+
+                var dt = e.dataTransfer, files = dt.files;
+
+                for (var i = 0; i < files.length; ++ i) {
+                    var file = files[i];
+                    var reader = new FileReader();
+
+                    $.parseFile(file);
+                }
+                return false;
+            });
         }
     };
 
@@ -62,8 +79,7 @@
     }
 
     function ContinuumFile(continuumObj, file) {
-        var $ = this;
-        $.continuumObj = continuumObj;
+        this.continuumObj = continuumObj;
     }
 
     ContinuumFile.prototype = {
@@ -81,8 +97,8 @@
         var key;
         if (typeof(obj.length) !== 'undefined') {
             for (key = 0; key < obj.length; ++ key)
-                if (callback.call(context, obj[key], key) === false)
-                    return;
+            if (callback.call(context, obj[key], key) === false)
+                return;
         } else {
             for (key in obj) {
                 if (obj.hasOwnProperty(key) && callback.call(context, obj[key], key) === false) return;
@@ -90,7 +106,7 @@
         }
     }
 
-    Continuum.extend = function(dest) {
+    function extend(dest) {
         var arg = arguments;
         each(arg, function(obj) {
             if (obj !== dest) {
@@ -101,6 +117,21 @@
         });
         return dest;
     }
+
+    function addEventHandler(obj, evt, handler) {
+        if(obj.addEventListener) {
+            // W3C method
+            obj.addEventListener(evt, handler, false);
+        } else if(obj.attachEvent) {
+            // IE method.
+            obj.attachEvent('on'+evt, handler);
+        } else {
+            // Old school method.
+            obj['on'+evt] = handler;
+        }
+    }
+
+    Continuum.extend = extend;
 
     Continuum.version = '0.0.1';
 
