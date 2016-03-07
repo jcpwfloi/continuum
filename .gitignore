@@ -1,0 +1,14 @@
+# node_modules folder
+node_modules
+
+dist
+*.log
+
+# vim swap file
+*.swp
+
+# backup file
+*.bak
+
+.DS_Store
+
