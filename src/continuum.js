@@ -33,8 +33,8 @@
         }
 
         this.option = {};
+        this.fileList = []; //File Objects
         this.supportDirectory = /Chrome/.test(window.navigator.userAgent);
-        this.files = []; // File Objects
         this.defaults = {
             chunkSize: 1024 * 1024,
             enableFlashUpload: true
@@ -44,6 +44,45 @@
     }
 
     Continuum.prototype = {
+        on: function(event, callback) {
+            event = event.toLowerCase();
+            if (!this.events.hasOwnProperty(event)) {
+                this.events[event] = [];
+            }
+            this.events[event].push(callback);
+        },
+
+        off: function(event, fn) {
+            if (event !== undefined) {
+                event = event.toLowercase();
+                if (fn !== undefined) {
+                    if (this.events.hasOwnProperty(event)) {
+                        arrayRemove(this.events[event], fn);
+                    }
+                } else {
+                    delete this.events[event];
+                }
+            } else {
+                this.events = {};
+            }
+        },
+
+        fire: function(event, args) {
+            args = Array.prototype.slice.call(arguments);
+            event = event.toLowerCase();
+            var preventDefault = false;
+            if (this.events.hasOwnProperty(event)) {
+                each(this.events[event], function(callback) {
+                    preventDefault = callback.apply(this, args.slice(1)) === false || preventDefault;
+                }, this);
+            }
+            if (event != 'catchall') {
+                args.unshift('catchAll')
+                preventDefault = this.fire.apply(this, args) === false || preventDefault();
+            }
+            return !preventDefault;
+        },
+
         assignDrop: function(obj) {
             var $ = this;
             var drop = obj;
@@ -63,12 +102,14 @@
 
                 var dt = e.dataTransfer, files = dt.files;
 
+                $.fire('filereceive');
+
                 for (var i = 0; i < files.length; ++ i) {
                     var file = files[i];
-                    var reader = new FileReader();
 
-                    $.parseFile(file);
+                    $.fileList.push(new ContinuumFile(file));
                 }
+
                 return false;
             });
         }
@@ -122,12 +163,19 @@
         if(obj.addEventListener) {
             // W3C method
             obj.addEventListener(evt, handler, false);
-        } else if(obj.attachEvent) {
+        } else if (obj.attachEvent) {
             // IE method.
-            obj.attachEvent('on'+evt, handler);
+            obj.attachEvent('on' + evt, handler);
         } else {
             // Old school method.
-            obj['on'+evt] = handler;
+            obj['on' + evt] = handler;
+        }
+    }
+
+    function arrayRemove(array, value) {
+        var index = array.indexOf(value);
+        if (index > -1) {
+            array.splice(index, 1);
         }
     }
 
